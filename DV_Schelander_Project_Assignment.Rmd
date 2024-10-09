@@ -1,0 +1,374 @@
+---
+title: "Data Visualization I - Final Project"
+subtitle: "Which Variables have a Higher Impact on the Climbing Performance? The Body Measurements Ape-Index and BMI or the Training Frequency and Experience?"
+author: "Schelander Martina"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+<h1> Table of Contents </h1> 
+<ol>
+    <li>
+      <a href="#Dataset">
+      <span class="title">Climbing Training Survey</span>
+      </a>
+    </li>
+    <li>
+      <a href="#DataImport_EDA">
+      <span class="title">Data Import and EDA</span>
+      </a>
+    </li>
+    <li>
+      <a href="#Augment_Dataset">
+      <span class="title">Dataset Augmentation</span>
+      </a>
+    </li>
+    <li>
+      <a href="#Attribute_Types">
+      <span class="title">Attribute Types</span>
+      </a>
+    </li>
+    <li>
+      <a href="#Distributions">
+      <span class="title">BMI and APE Index - Data Distribution</span>
+      </a>
+    </li>
+    <li>
+      <a href="#BodyMeasurements">
+      <span class="title">Body Measurements Evaluation</span>
+      </a>
+    </li>
+    <li>
+      <a href="#TrainingandExperience">
+      <span class="title">Training and Experience Evaluation</span>
+      </a>
+    </li>
+    <li>
+      <a href="#Results">
+      <span class="title">Evaluation Results</span>
+      </a>
+    </li>
+    <li>
+      <a href="#References">
+      <span class="title">References</span>
+      </a>
+    </li>
+ </ol>
+
+<h2> Load Libraries </h2>
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)  # for mutate
+library(psych)  # for describe
+library(RColorBrewer) # for color palettes
+```
+
+<h1 id="Dataset">1 Climbing Training Survey</h1>
+
+<h2>1.1 Dataset</h2>
+
+<p>This dataset is the results of a climbing training oriented survey that was initiated via reddit [1].
+<br>Data is available on google docs [2].
+<br><br><b> This is a secondary datasource.</b> The survey was conducted in order to gain an insight on climbing and training habits and the corresponding climbing performance 
+values of amateur climbers. Comparable studies like [3], [4] have been conducted for professional climbers and not for amateur and hobby climbers. So I decided to use the given source. I assume that the data was collected with the due care and the diligence required. </p>
+
+<p>It contains a few interesting body measurements, like weight, height and arm span. It also includes a few columns measuring the current climbing performance of the participant among which you can find the column "Hardest Route grade climbed (Ewbank grade)". The Ewbank grade is the Australian climbing route grading scale that spans from 11 (= French grade 3) to currently 39(=French grade 9c). </p>
+<p>
+I already preprocessed the data using a jupyter notebook, where I removed irrelevant columns and converted mixed scale and ambiguous column values. I calculated the overall climbing training effort and converted the string given for the climbing experience into the respective years. I also converted the "Hardest Boulder grade ever climbed" into the according route scale and saved the result to the column "Hardest Route grade climbed (Ewbank grade)" whenever the participant was a Boulderer only and did not state his or her hardest route grade climbed. I changed the column names to shorter variants and saved the resulting dataframe into a new csv file named climbharder_processed.csv.</p>
+
+What has happend to the dataset until now?<br>
+1. Removal of irrelevant columns <br>
+2. Mixed scale was converted <br>
+3. Numbers extracted from free text fields <br>
+4. Calculation of climbing effort experience <br>
+5. Conversion of bouldering and climbing grades <br>
+
+
+<h2>1.2 Question</h2>
+
+**Which Variables have a Higher Impact on the Climbing Performance? The Body Measurements Ape-Index and BMI or the Training Frequency and Experience?**
+<br>
+Do the Effects of the Body Measurements Ape-Index and BMI on the climbing performance outweigh the effects of training frequency and experience?
+<br>
+
+<p>There is a common believe that there is a positive relation between a high ape index and the high climbing performance and a negative correlation between the Body Mass Index and the climbing performance. I would like to find out if their impact on the climbing performance is higher than the impact of training effort and experience. I would like to investigate this using ggplot graphs.</p> 
+
+
+<h1 id="DataImport_EDA">2 Data Import and EDA</h1>
+
+<h2> 2.1 Import and Descriptive statistics </h2> 
+
+```{r}
+climb_data_raw = read.csv('.\\data\\climbharder_processed.csv')
+head(climb_data_raw)
+```
+
+<h2> 2.2 Column Info </h2> 
+Get column type info and number of observations:
+```{r}
+str(climb_data_raw)
+```
+We can see that 524 observations are in the dataset and we have 7 variables. One categorical variable and 6 numerical.
+
+<h2> 2.3 Descriptive Statistics </h2> 
+
+```{r}
+describe(climb_data_raw)
+```
+We can see that height values range between 157 and 198 cm, arm span between 155 and 203 cm and weight between 45 and 95 kg. 
+<br> The datapreprocessing in the jupyter notebook had been successful and no further data cleaning is required. 
+
+<h2> 2.4 Distribution of the Climbing Performance per Gender </h2> 
+
+<br> As a start I want to make sure that the distribution of the climbing performance is suitable to answer my question. The descriptive statistics looked promising but I want to illustrate the distribution using a density plot and check in a visual way if the variance is high enough.
+<br>The Maxgrade values are categorical variables so I decided to use a histogram to illustrate the distribution.
+
+```{r, fig.width = 10, fig.height = 6}
+p_distribution <- ggplot(data = climb_data_raw,
+            mapping = aes(x = Maxgrade, fill = Sex)) + 
+  geom_histogram(alpha = 0.7, bins = 10, col="white") + 
+  facet_wrap(~Sex, ncol = 2) + 
+  scale_fill_manual(values = c("red2", "navyblue")) +
+  labs(x = "Maximum Grade", y = "Count", title = "Gender-specific Distribution of the Maxgrade value", 
+       caption = "Figure 1 - Histogram for the climbing performance (Maxgrade)") +
+  theme(legend.title = element_blank(),legend.position = "top", plot.title = element_text(hjust = 0.5), plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10))
+
+p_distribution
+```
+
+The histograms show a slightly left skewed but normal distribution. I also notice that it makes no sense to make a distinct evaluation per gender, as there are too few test results for female climbers in the data. 
+
+
+<h2> 2.5 Tidy Data </h2>
+<p> The dataset is in long format (=tidydata), which means that every observation is a row and every variable a column.
+<br> An observation corresponds to one survey result (= one climber). The columns present are Sex, Height, Weight, Armspan, Maxgrade, Traininghours and Years_Experience.</p>
+
+<h1 id="Augment_Dataset">3 Dataset Augmentation</h1>
+
+<h2> Create two new Variables </h2>
+As seen in the previous points, I am still missing the Ape Factor and the Body Mass Index as separate columns in the dataset.
+<br> I will use the mutate function to add the additionally required columns to the data at the current level of grouping.
+<br> The weight column seems to be in kg already, but I will have to convert the Weight column to meters for the calculation.
+
+```{r}
+# create BMI and APE Index
+climb_data <- climb_data_raw %>% mutate(BMI = round((Weight / (Height/100)**2),0), APE = Armspan - Height)
+```
+
+```{r}
+climb_data
+```
+
+
+<h1 id="Attribute_Types">4 Attribute Types</h1>
+
+```{r}
+str(climb_data)
+```
+<b>
+- Sex = NOMINAL - Categorical (Qualitative) <br>
+- Height = RATIO - Continuous (Quantitative) <br>
+- Weight = RATIO - Continuous (Quantitative) <br>
+- Armspan = RATIO - Continuous (Quantitative) <br>
+- Maxgrade = ORDINAL - Categorical (Qualitative) <br>
+- Traininghours = RATIO - Continuous (Quantitative) <br>
+- Years_Experience = RATIO - Continuous (Quantitative) <br>
+- BMI = INTERVAL - Discrete (Quantitative)  (could be ORDINAL - Categorical classes: Underweight, Normal, Overweight, Obese)<br>
+- APE = RATIO - Continuous (Quantitative) <br>
+</b>
+
+<h1 id="Distributions">5 APE Index and BMI Distributions </h1>
+
+After the creation of the two new variables I want to visualize the distribution of these two variables in my dataset. 
+<br> I choose a histogram to illustrate the BMI and the Ape index respectively. 
+
+<h2> 5.1 APE Index Distribution </h2>
+
+For the Ape index I choose a diverging color palette with a yellow hue as midpoint. I wanted to avoid choosing a very light color as midpoint as it would not have been visible on the light background. 
+
+```{r, fig.width = 10, fig.height = 6}
+p_distribution <- ggplot(data = climb_data,                   # definition of the datascource
+            mapping = aes(x = APE, fill=..x..)) +             # mapping of the data
+  theme_grey() +                                              # dark theme is selected to build a contrast to the neutral color
+  geom_histogram(alpha = 0.95, bins = 20, col="white") +      # geom_histogram is being selected
+  scale_fill_gradient2(midpoint = 0, low = "darkgreen", mid = "darkgoldenrod1", high = "navyblue") +   # I create my own divergent color gradient
+  scale_x_continuous(breaks=seq(-30,30,5)) +                  # X-Axis Ticks
+  labs(fill='Ape Index', x = "APE Index", y = "Count", title= "Climber Survey - APE Index", 
+       caption = "Figure 2 - Histogram for the distribution of the APE Index") +    # label definitions
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5),          # legend and text positioning 
+        plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10)) 
+
+p_distribution
+```
+
+The histogram shows a left skewed distribution, meaning that the majority of the climbers in my dataset have a higher ape index than the average population.  
+
+
+<h2> 5.2 BMI Distribution </h2>
+
+A usual healthy BMI range is defined between 19 and 25. So I choose a neutral midpoint of 23. I choose a diverging palette with a midpoint color of blue. 
+
+```{r, fig.width = 10, fig.height = 6}
+p_distribution <- ggplot(data = climb_data,                   # definition of the datascource
+            mapping = aes(x = BMI, fill=..x..)) +             # mapping of the data
+  theme_grey() +                                              # dark theme is selected to build a contrast to the neutral color
+  geom_histogram(alpha = 0.95, bins = 15, col="white") +      # geom_histogram is being selected
+  scale_fill_gradient2(midpoint = 23, low = "#86f54b", mid = "#5E6FC4", high = "#f92c85") +   # I create my own divergent color gradient
+  scale_x_continuous(breaks=seq(15,35,1)) +                   # X-Axis Ticks
+  labs(fill='BMI', x = "BMI", y = "Count", title= "Climber Survey - Body Mass Index",   # label definitions
+       caption = "Figure 3 - Histogram for the distribution of the Body Mass Index") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5),              # legend and text positioning 
+        plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10)) 
+
+p_distribution
+```
+
+The histogram shows a right skewed distribution, meaning that the majority of the climbers in my dataset have a lower Body Mass index than the average population.  
+
+***
+
+<h1 id="BodyMeasurements">6 Body Measurements Evaluation</h1>
+
+<h2> Ape Index - Effects </h2>
+
+I choose this graph type as it perfectly illustrates the relationship between my variables Ape Index and Maxgrade. A third variable BMI is added by using the color as channel. An annotation line is added to illustrate the neutral value for the APE Index which is 0. 
+I add a linear regression line because I am interested in the correlation coefficient of the Ape Index and the Maxgrade.I additionally calculate the respective value and annotate it in the graph.
+<br>I choose to not use the geom_point but the geom_jitter to make the dots not overlap and hide each other.
+
+```{r, fig.width = 13, fig.height = 8}
+# 1. TIDY DATA -> climb_data is tidy data in long format
+# 2. MAPPING
+
+p_7 <- ggplot(data = climb_data,
+            mapping = aes(x = APE,
+                          y = Maxgrade)) +
+    # adding the theme dark already at this point because of the layering in ggplot
+    theme_grey()
+# 3. GEOM
+p_7 + geom_vline(xintercept = 0, linetype="twodash", color = "grey", size=0.5) +
+  geom_jitter(shape=18,size=3, mapping = aes(color = BMI)) +
+  scale_colour_gradient2(low = "#86f54b", midpoint = 23, mid = "#5E6FC4", high = "#f92c85") +
+  geom_smooth(alpha = 0.2, color = "#B22C20", fill = "#BB8182", size = 0.8, method = "lm") +
+
+# 4. COORDINATES SCALES - Default Cartesian and linear
+scale_x_continuous(limits = c(-20, 28), breaks = seq(-20,28,5)) +
+scale_y_continuous(breaks = seq(10,36,2)) +
+
+# 5. LABELS & GUIDES
+labs(x = "APE Index", y = "Maximum Grade Climbed", title= "Ape Index - Effects on the Climbing Performance with regards to BMI", 
+           caption = "Figure 5 - Scatter plot for the Ape Index Evaluation") +
+theme(legend.position = "right", plot.title = element_text(hjust = 0.5), plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10)) +
+annotate("text",x=15,y=17,label=(paste0("Slope==",coef(lm(climb_data$Maxgrade~climb_data$APE))[2])),parse=TRUE)
+
+```
+
+
+<h2> Body Mass Index - Effects </h2>
+
+I choose again this graph type as it illustrates the relationship between my variables BMI and Maxgrade. A third variable APE Index is added by using the color as channel. An annotation line is added to illustrate the neutral value for the BMI which is 23. 
+I add a linear regression line because I am interested in the correlation coefficient of the BMI and the Maxgrade.I additionally calculate the respective value and annotate it in the graph.
+<br>I choose to not use the geom_point but the geom_jitter to make the dots not overlap and hide each other.
+
+
+```{r, fig.width = 13, fig.height = 8}
+# 1. TIDY DATA -> climb_data is tidy data in long format
+# 2. MAPPING
+
+p_7 <- ggplot(data = climb_data,
+            mapping = aes(x = BMI,
+                          y = Maxgrade)) +
+    # adding the theme dark already at this point because of the layering in ggplot
+    theme_grey()
+# 3. GEOM
+p_7 + geom_vline(xintercept = 23, linetype="twodash", color = "grey", size=0.5) +
+  geom_jitter(shape=18,size=3, mapping = aes(color = APE)) +
+  scale_colour_gradient2(low = "darkgreen", midpoint = 0, mid = "darkgoldenrod1", high = "navyblue") +
+  geom_smooth(alpha = 0.2, color = "#B22C20", fill = "#BB8182", size = 0.8, method = "lm") +
+
+# 4. COORDINATES SCALES - Default Cartesian and linear
+scale_x_continuous(limits = c(17,32), breaks = seq(17,32,1)) +
+scale_y_continuous(breaks = seq(10,36,2)) +
+
+# 5. LABELS & GUIDES
+labs(x = "Body Mass Index", y = "Maximum Grade Climbed", title= "Body Mass Index - Effects on the Climbing Performance with regards to APE Index", 
+           caption = "Figure 5 - Scatter plot for the BMI Evaluation") +
+theme(legend.position = "right", plot.title = element_text(hjust = 0.5), plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10))+
+annotate("text",x=28,y=16,label=(paste0("Slope==",coef(lm(climb_data$Maxgrade~climb_data$BMI))[2])),parse=TRUE)
+```
+
+
+<h1 id="TrainingandExperience">7 Training and Experience Evaluation</h1>
+
+After revisiting Kirk [5] I decided to use a Bubble Plot for my graph as I am trying to illustrate the relationship between my variables Years_Experience, Traininghours and Maxgrade. A Bubble plot can illustrate the relationship between three variables by using the position along the x- and y-axis and using the size of the dot as a third way of variation. Circle shape marks are being used. Their size depends on a third quantitative measure, here being the Training Effort.I add the BMI as forth variable to the plot using color as a channel as it proved to be affecting the climbing performance in the last chapter. 
+<br>I also decided to show a regression line in the graph to illustrate the trend and give a clear answer to the question if the MAXGRADE and the YEARS_EXPERIENCE values correlate.  
+<br>I choose a diverging color palette for the BMI again and use the same colors as in the graphs before.  
+<br>I choose to not use the geom_point but the geom_jitter to make the dots not overlap and hide each other. 
+
+
+```{r, fig.width = 13, fig.height = 8}
+# 1. TIDY DATA -> climb_data is tidy data in long format
+# 2. MAPPING
+climb_data <- climb_data %>% mutate(Traininghours_magnified = Traininghours**2)
+
+p_7 <- ggplot(data = climb_data,
+            mapping = aes(x = Years_Experience,
+                          y= Maxgrade, size = Traininghours_magnified)) +
+    
+    # adding labels and guides to the legend at this point because of the layering in ggplot 
+    scale_size(name = "Training Effort", labels = c('0-15','16-22','23-27','28-31', 'more than 32')) +
+    
+    # adding the theme dark already at this point because of the layering in ggplot
+    theme_grey()
+    
+# 3. GEOM
+p_7 + geom_jitter(mapping = aes(color = BMI)) +
+  scale_colour_gradient2(midpoint = 23, low = "#86f54b", mid = "#5E6FC4", high = "#f92c85") +
+  geom_smooth(alpha = 0.2, color = "#B22C20", fill = "#BB8182", size = 0.8, method = "lm") +
+
+# 4. COORDINATES SCALES - Default Cartesian and linear
+scale_x_continuous(limits = c(0, 15), breaks = seq(0,15,1)) +
+scale_y_continuous(breaks = seq(10,36,2)) +
+  
+# 5. LABELS & GUIDES
+labs(x = "Years of Experience", y = "Maximum Grade Climbed", title= "Training Effort/Experience - Effects on the Climbing Performance with regards to BMI", 
+           caption = "Figure 5 - Bubble plot for the Training and Experience Evaluation", color = "BMI") +
+theme(legend.position = "right", plot.title = element_text(hjust = 0.5), plot.caption = element_text(color = "black", face = "italic", hjust = 0.5, size= 10))+
+annotate("text",x=11,y=15,label=(paste0("Slope==",coef(lm(climb_data$Maxgrade~climb_data$Years_Experience))[2])),parse=TRUE)
+```
+
+
+<h1 id="Results">8 Evaluation Results</h1>
+
+<p>
+The graph from chapter "6 - Body Measurements Evaluation - Ape Index Effects" revealed that there is **almost no correlation between the Ape Index and the climbing performance.** The slope value of 0.034 is very low. 
+</p>
+<p>
+The graph from chapter "6 - Body Measurements Evaluation - Body Mass Index Effects" revealed **a very weak but visible correlation between the Body Mass Index and the climbing performance.** The slope value of - 0.25 is rather weak. 
+</p>
+<p>
+The graph from chapter "7 - Training and Experience Evaluation" revealed two key findings. 
+<br><b> 1. The is a visible correlation between the Maximum Climbed Grade and the Years of climbing experience. The regression line is clearly ascending with the years of climbing experience. The slope value is 0.44.   
+<br>2. The amount of Training effort correlates with a positive climbing performance. The bigger bubbles are in general to be found over the average indicated by the regression line. </b>
+</p>
+
+
+
+<h1 id="References">9 References</h1>
+
+[1] https://www.reddit.com/r/climbharder/comments/5qszhe/climbharder_training_survey/ (accessed: 01.04.2023) 
+
+[2] https://docs.google.com/spreadsheets/d/1J6d45EqIlIsIqNdi2X-Zl-EGFxf9d9T3R_W55xrpEAs/edit#gid=1650492946
+
+[3] Watts, P. B., et al. "Anthropometry of young competitive sport rock climbers." British journal of sports medicine 37.5 (2003): 420-424.
+
+[4] Giles, Luisa V., Edward C. Rhodes, and Jack E. Taunton. "The physiology of rock climbing." Sports medicine 36 (2006): 529-545.
+
+[5] Kirk, A. (2019). Data Visualisation: A Handbook for Data Driven Design, SAGE Publications.
+
+
+***
